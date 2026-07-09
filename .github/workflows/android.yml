@@ -1,0 +1,41 @@
+name: Android CI
+
+on:
+  push:
+    branches: [ "working-selinuxns" ]
+  pull_request:
+    branches: [ "working-selinuxns" ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    steps:
+      # 1. 检出代码
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2. 打包代码为 tar.gz
+      - name: Package code
+        run: |
+          # 获取当前时间作为版本号后缀（可选）
+          TIMESTAMP=$(date +%Y%m%d%H%M%S)
+          FILE_NAME="source-code-${TIMESTAMP}.tar.gz"
+          
+          # 打包当前目录所有文件，排除 .git 目录和生成的 tar 包本身
+          # 注意：--exclude 必须放在 tar 命令的最前面
+          tar -czvf $FILE_NAME \
+            --exclude='.git' \
+            --exclude='*.tar.gz' \
+            .
+          
+          # 将文件名设置为环境变量，供后续步骤使用
+          echo "ARCHIVE_NAME=$FILE_NAME" >>$GITHUB_ENV
+
+      # 3. 上传构建产物
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: source-code-package  # 产物名称
+          path: ${{ env.ARCHIVE_NAME }} # 要上传的文件路径
+          retention-days: 7          # 产物保留天数（默认90天，这里设为7天节省空间）
